@@ -1,0 +1,8 @@
+name: shevchenko_web_example
+publish_to: none
+environment:
+  sdk: '>=3.11.0 <4.0.0'
+dependencies:
+  shevchenko:
+    path: ../..
+  web: 1.1.1

@@ -1,0 +1,8 @@
+* text=auto eol=lf
+tool/data/** -text
+test/fixtures/unicode/** -text
+test/fixtures/*.json -text
+*.bin -text
+*.png -text
+*.ico -text
+*.jar -text

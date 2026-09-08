@@ -1,0 +1,6 @@
+include: package:lints/recommended.yaml
+analyzer:
+  exclude:
+    - tmp/**
+    - example/flutter_app/**
+    - example/web_app/**
