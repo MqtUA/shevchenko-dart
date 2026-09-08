@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="uk">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Українське відмінювання</title>
+<style>
+  body {font: 18px/1.6 system-ui; max-width: 680px; margin: 48px auto; padding: 0 24px; color: #18262b; background: #faf9f5}
+  label {display: block; margin: 16px 0} input,select,button {font: inherit; padding: 8px; box-sizing: border-box}
+  input {display: block; width: 100%} pre {white-space: pre-wrap} button {cursor: pointer}
+</style>
+<h1>Українське відмінювання</h1>
+<form id="request">
+  <label>Ім’я<input id="givenName" value="Тарас"></label>
+  <label>По батькові<input id="patronymicName" value="Григорович"></label>
+  <label>Прізвище<input id="familyName" value="Шевченко"></label>
+  <label>Звання<input id="militaryRank" value="солдат"></label>
+  <label>Посада<input id="militaryAppointment" value="помічник гранатометника"></label>
+  <label>Рід <select id="gender"><option value="masculine">Чоловічий</option><option value="feminine">Жіночий</option></select></label>
+  <label>Відмінок <select id="case"><option value="genitive">Родовий</option><option value="nominative">Називний</option><option value="dative">Давальний</option><option value="accusative">Знахідний</option><option value="ablative">Орудний</option><option value="locative">Місцевий</option><option value="vocative">Кличний</option></select></label>
+  <button>Відмінити</button>
+</form>
+<pre id="output" aria-live="polite"></pre>
+<script src="main.dart.js" defer></script>
+</html>

@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 1,
+  "files": [
+    {
+      "path": "model.bundle.json",
+      "bytes": 10241,
+      "sha256": "758fc9a5e60faec246c52706a34d5fd0abbc08f9df8276a89daa5b50ad4002d9",
+      "source": "shevchenko-js",
+      "sourcePath": "src/anthroponym-declension/family-name-classifier/artifacts/model.bundle.json",
+      "commit": "e99c64c4e3771d7477116fc3fec7d2f099cc0cb3"
+    },
+    {
+      "path": "weights.bin",
+      "bytes": 4356,
+      "sha256": "e7b89fc461b3c1f2c42cc31580bdbfcde2217ebb321457c1b65aca503c18da36",
+      "source": "shevchenko-js",
+      "sourcePath": "src/anthroponym-declension/family-name-classifier/artifacts/weights.bin",
+      "commit": "e99c64c4e3771d7477116fc3fec7d2f099cc0cb3"
+    },
+    {
+      "path": "incorrect-predictions.json",
+      "bytes": 35556,
+      "sha256": "a64ffe0d8eb6afc9f24fcfdf59d6fdd6f555bb8985850f37e2734de5da0135b8",
+      "source": "shevchenko-js",
+      "sourcePath": "src/anthroponym-declension/family-name-classifier/cache/incorrect-predictions.json",
+      "commit": "e99c64c4e3771d7477116fc3fec7d2f099cc0cb3"
+    },
+    {
+      "path": "given-name-rules.json",
+      "bytes": 2221,
+      "sha256": "75468e362c1f35ac68d47c17c3b9718d9c689e254183cb72dd85133e456ccbd1",
+      "source": "shevchenko-js",
+      "sourcePath": "src/gender-detection/artifacts/given-name-rules.json",
+      "commit": "e99c64c4e3771d7477116fc3fec7d2f099cc0cb3"
+    },
+    {
+      "path": "patronymic-name-rules.json",
+      "bytes": 56,
+      "sha256": "ecf0fc84a9a29faabebb486278c6f2fca419c9bf201cc64a04c6235e390c297b",
+      "source": "shevchenko-js",
+      "sourcePath": "src/gender-detection/artifacts/patronymic-name-rules.json",
+      "commit": "e99c64c4e3771d7477116fc3fec7d2f099cc0cb3"
+    },
+    {
+      "path": "adjective-declension-rules.json",
+      "bytes": 12559,
+      "sha256": "ff283ff10c5297dceaf743497a15eba92cf914fbd746cb31a754467df30a79a5",
+      "source": "shevchenko-js",
+      "sourcePath": "src/word-declension/rules/adjective-declension-rules.json",
+      "commit": "e99c64c4e3771d7477116fc3fec7d2f099cc0cb3"
+    },
+    {
+      "path": "declension-rules.json",
+      "bytes": 163985,
+      "sha256": "ba8b73b7e677bce04e418874321f112917aed60ba528e490365c2f12f30d3d3e",
+      "source": "shevchenko-js",
+      "sourcePath": "src/word-declension/rules/artifacts/declension-rules.json",
+      "commit": "e99c64c4e3771d7477116fc3fec7d2f099cc0cb3"
+    },
+    {
+      "path": "exception-declension-rules.json",
+      "bytes": 15977,
+      "sha256": "81eba45a191c78d66783fcdd17d0a689faa7cbed46f4206985e2c87a18f1c16a",
+      "source": "shevchenko-js",
+      "sourcePath": "src/word-declension/rules/exception-declension-rules.json",
+      "commit": "e99c64c4e3771d7477116fc3fec7d2f099cc0cb3"
+    },
+    {
+      "path": "noun-declension-rules.json",
+      "bytes": 135174,
+      "sha256": "a5216cac57a229c98bac302db6c102da417510a6223fbfd406d5403f840faa6f",
+      "source": "shevchenko-js",
+      "sourcePath": "src/word-declension/rules/noun-declension-rules.json",
+      "commit": "e99c64c4e3771d7477116fc3fec7d2f099cc0cb3"
+    },
+    {
+      "path": "word-classifier-rules.json",
+      "bytes": 849,
+      "sha256": "3598735518ad608fe6a01a7527cbc101ee62d00a1ea33b4d6cb27f71a3df941d",
+      "source": "shevchenko-ext-military",
+      "sourcePath": "src/word-classifier-rules.json",
+      "commit": "5b2d7482a1782bfb047409efe60a5d4a5100b5a2"
+    },
+    {
+      "path": "word-hyphenation-rules.json",
+      "bytes": 218,
+      "sha256": "c4c26d2cb80606fd454f22957632f4eef0bdaf1854849f11682d1854d7057c2f",
+      "source": "shevchenko-ext-military",
+      "sourcePath": "src/word-hyphenation-rules.json",
+      "commit": "5b2d7482a1782bfb047409efe60a5d4a5100b5a2"
+    }
+  ]
+}

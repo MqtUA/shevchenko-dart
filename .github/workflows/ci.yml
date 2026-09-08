@@ -1,0 +1,121 @@
+name: GitHub Release
+
+on:
+  push:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.repository }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    if: github.ref_name == github.event.repository.default_branch
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Detect package version change
+        id: version
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          read_version() {
+            local file="$1"
+            mapfile -t versions < <(
+              sed -nE "s/^version:[[:space:]]*['\"]?([^'\"[:space:]]+)['\"]?[[:space:]]*$/\1/p" "$file"
+            )
+            if [[ ${#versions[@]} -ne 1 ]]; then
+              echo "Expected exactly one version in $file." >&2
+              return 1
+            fi
+            printf '%s' "${versions[0]}"
+          }
+
+          current_version="$(read_version pubspec.yaml)"
+          if [[ ! "$current_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$ ]]; then
+            echo "Invalid package version: $current_version" >&2
+            exit 1
+          fi
+
+          previous_version=""
+          before="${{ github.event.before }}"
+          if [[ "$before" != "0000000000000000000000000000000000000000" ]] &&
+             git cat-file -e "${before}:pubspec.yaml" 2>/dev/null; then
+            git show "${before}:pubspec.yaml" > "$RUNNER_TEMP/previous-pubspec.yaml"
+            previous_version="$(read_version "$RUNNER_TEMP/previous-pubspec.yaml")"
+          fi
+
+          if [[ "$current_version" == "$previous_version" ]]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "Package version remains $current_version; no release is needed."
+            exit 0
+          fi
+
+          tag="v$current_version"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "Release $tag already exists."
+            exit 0
+          fi
+
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+      - name: Create release notes from commits
+        if: steps.version.outputs.changed == 'true'
+        id: notes
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          previous_tag=""
+          while IFS= read -r candidate; do
+            if git rev-parse --verify --quiet "refs/tags/${candidate}^{commit}" >/dev/null &&
+               git merge-base --is-ancestor "$candidate" "$GITHUB_SHA"; then
+              previous_tag="$candidate"
+              break
+            fi
+          done < <(gh release list --limit 100 --json tagName --jq '.[].tagName')
+
+          if [[ -n "$previous_tag" ]]; then
+            range="${previous_tag}..${GITHUB_SHA}"
+            heading="Changes since ${previous_tag}"
+          else
+            range="$GITHUB_SHA"
+            heading="Changes"
+          fi
+
+          notes="$RUNNER_TEMP/release-notes.md"
+          {
+            printf '## %s\n\n' "$heading"
+            git log --reverse --format='- %s (`%h`)' "$range"
+            printf '\n'
+          } > "$notes"
+
+          echo "file=$notes" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub release
+        if: steps.version.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ steps.version.outputs.tag }}
+          RELEASE_NOTES: ${{ steps.notes.outputs.file }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release create "$RELEASE_TAG" \
+            --target "$GITHUB_SHA" \
+            --title "$RELEASE_TAG" \
+            --notes-file "$RELEASE_NOTES" \
+            --latest
+          echo "Created GitHub release $RELEASE_TAG." >> "$GITHUB_STEP_SUMMARY"

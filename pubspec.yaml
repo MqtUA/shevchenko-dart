@@ -1,0 +1,14 @@
+name: shevchenko
+description: Ukrainian name, military rank and appointment declension in pure Dart, ported from shevchenko.js.
+version: 0.9.0
+repository: https://github.com/MqtUA/shevchenko-dart
+issue_tracker: https://github.com/MqtUA/shevchenko-dart/issues
+environment:
+  sdk: '>=3.11.0 <4.0.0'
+dependencies:
+  unorm_dart: ^0.3.2
+dev_dependencies:
+  test: ^1.32.0
+  lints: ^6.1.0
+  crypto: ^3.0.7
+  vm_service: ^15.3.0

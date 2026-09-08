@@ -1,0 +1,35 @@
+.dart_tool/
+build/
+node_modules/
+coverage/
+*.exe
+# Generated browser output and JavaScript/TypeScript files are excluded because
+# this repository contains Dart source only.
+*.js
+*.jsx
+*.mjs
+*.cjs
+*.ts
+*.tsx
+*.mts
+*.cts
+*.js.deps
+*.map
+*.wasm
+*.tsbuildinfo
+package.json
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+.pub-cache/
+.npm-cache/
+tmp/
+smoke-result.json
+*.log
+*.tmp
+*.bak
+*-report.json
+.idea/
+*.iml
+.DS_Store
+Thumbs.db
