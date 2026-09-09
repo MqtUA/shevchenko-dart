@@ -19,11 +19,14 @@ Future<void> main() async {
       .where(
         (file) =>
             file.isNotEmpty &&
+            File(file).existsSync() &&
             (forbidden.hasMatch(file) ||
                 file.startsWith('tmp/') ||
                 file.contains('/node_modules/') ||
                 file.endsWith('-report.json') ||
-                (file.startsWith('doc/') && !file.endsWith('.md'))),
+                (file.startsWith('doc/') &&
+                    !file.endsWith('.md') &&
+                    file != 'doc/oracle-provenance.json')),
       )
       .toList();
   if (invalid.isNotEmpty) {

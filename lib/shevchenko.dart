@@ -2,14 +2,18 @@
 library;
 
 import 'src/api.dart';
-import 'src/extensions.dart';
 import 'src/language.dart';
 export 'src/api.dart'
     show
         Shevchenko,
         DeclensionInput,
         DeclensionOutput,
+        InflectionResult,
+        InflectionFieldDiagnostic,
+        InflectionFieldSource,
         GenderDetectionInput,
+        GenderDetectionResult,
+        GenderDetectionSource,
         FullNameInput,
         FullNameFormat;
 export 'src/declension.dart';
@@ -19,10 +23,15 @@ export 'src/language.dart'
 export 'src/military.dart' show militaryExtension;
 export 'src/validation.dart' show InputValidationException;
 
-void registerExtension(ExtensionFactory factory) =>
-    defaultShevchenko.registerExtension(factory);
 Future<GrammaticalGender?> detectGender(GenderDetectionInput input) =>
     defaultShevchenko.detectGender(input);
+Future<GenderDetectionResult> detectGenderWithDiagnostics(
+  GenderDetectionInput input,
+) => defaultShevchenko.detectGenderWithDiagnostics(input);
+Future<InflectionResult> inflectWithDiagnostics(
+  GrammaticalCase grammaticalCase,
+  DeclensionInput input,
+) => defaultShevchenko.inflectWithDiagnostics(grammaticalCase, input);
 Future<String> inflectFullName(
   GrammaticalCase grammaticalCase,
   FullNameInput input,

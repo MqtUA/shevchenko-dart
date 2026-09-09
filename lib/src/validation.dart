@@ -29,6 +29,12 @@ Map<String, Object?> validateInput(
       'invalidInput',
     );
   }
+  if (input is Map && input.keys.any((key) => key is! String)) {
+    throw const InputValidationException(
+      'The input type must be an object with string keys.',
+      'invalidInput',
+    );
+  }
   final map = input is Map
       ? input.cast<String, Object?>()
       : <String, Object?>{};

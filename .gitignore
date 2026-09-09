@@ -1,5 +1,6 @@
 .dart_tool/
 build/
+doc/api/
 node_modules/
 coverage/
 *.exe

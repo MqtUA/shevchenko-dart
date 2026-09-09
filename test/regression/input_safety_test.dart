@@ -105,4 +105,40 @@ void main() {
       });
     },
   );
+
+  test('extension outputs are snapshotted before control returns', () async {
+    final nested = <String, Object?>{'value': 'before'};
+    final engine = Shevchenko.core()
+      ..registerExtension(
+        (_) => ShevchenkoExtension(
+          fieldNames: ['custom'],
+          afterInflect: (_, _) => {'custom': nested},
+        ),
+      );
+    final pending = engine.inflectRaw(GrammaticalCase.genitive, {
+      'gender': 'masculine',
+      'custom': 'input',
+    });
+    nested['value'] = 'after';
+    final result = await pending;
+    final output = result['custom'] as Map<String, Object?>;
+    expect(output['value'], 'before');
+    expect(() => output['value'] = 'changed', throwsUnsupportedError);
+  });
+
+  test('raw maps with non-string keys fail with a validation error', () async {
+    await expectLater(
+      Shevchenko.core().inflectRaw(GrammaticalCase.genitive, {
+        'gender': 'masculine',
+        1: 'Тарас',
+      }),
+      throwsA(
+        isA<InputValidationException>().having(
+          (error) => error.code,
+          'code',
+          'invalidInput',
+        ),
+      ),
+    );
+  });
 }

@@ -279,6 +279,81 @@ final class DeclensionOutput {
   };
 }
 
+/// Identifies which part of the engine produced a field value.
+enum InflectionFieldSource { coreRules, extension }
+
+/// Rule-selection details for one input field.
+final class InflectionFieldDiagnostic {
+  InflectionFieldDiagnostic({
+    required this.fieldName,
+    required this.input,
+    required this.output,
+    required this.source,
+    Iterable<WordInflectionResult> words = const [],
+  }) : words = List.unmodifiable(words);
+
+  /// The typed or custom field name.
+  final String fieldName;
+
+  /// The normalized input value seen by the engine.
+  final String input;
+
+  /// The value returned for the field.
+  final String output;
+
+  /// Whether core name rules or an extension produced the final value.
+  final InflectionFieldSource source;
+
+  /// Per-word core rule details; empty for extension-owned fields.
+  final List<WordInflectionResult> words;
+
+  /// Whether the final field value differs from the normalized input.
+  bool get changed => input != output;
+}
+
+/// A declined value accompanied by field-level rule diagnostics.
+final class InflectionResult {
+  InflectionResult({
+    required this.output,
+    required Map<String, InflectionFieldDiagnostic> diagnostics,
+  }) : diagnostics = Map.unmodifiable(diagnostics);
+
+  /// The regular typed declension output.
+  final DeclensionOutput output;
+
+  /// Diagnostics keyed by the corresponding input field name.
+  final Map<String, InflectionFieldDiagnostic> diagnostics;
+}
+
+/// The input field used to detect grammatical gender.
+enum GenderDetectionSource { givenName, patronymicName, none }
+
+/// Gender detection output with the evidence used by the classifier.
+final class GenderDetectionResult {
+  const GenderDetectionResult({
+    required this.gender,
+    required this.source,
+    required this.masculineMatchLength,
+    required this.feminineMatchLength,
+  });
+
+  /// The detected gender, or `null` when neither pattern matched.
+  final GrammaticalGender? gender;
+
+  /// The field selected according to the compatibility precedence rules.
+  final GenderDetectionSource source;
+
+  /// Length of the masculine pattern match, or zero when absent.
+  final int masculineMatchLength;
+
+  /// Length of the feminine pattern match, or zero when absent.
+  final int feminineMatchLength;
+
+  /// Whether both patterns produced equally strong matches.
+  bool get isAmbiguous =>
+      masculineMatchLength > 0 && masculineMatchLength == feminineMatchLength;
+}
+
 /// Instance-local extension registry. Military is enabled by default.
 final class Shevchenko {
   Shevchenko() : this._(true);
@@ -300,6 +375,23 @@ final class Shevchenko {
   ) async => DeclensionOutput.fromJson(
     await inflectRaw(grammaticalCase, input.toJson()),
   );
+
+  /// Inflects typed input and includes rule-selection diagnostics.
+  Future<InflectionResult> inflectWithDiagnostics(
+    GrammaticalCase grammaticalCase,
+    DeclensionInput input,
+  ) async {
+    final diagnostics = <String, InflectionFieldDiagnostic>{};
+    final output = await _inflectRaw(
+      grammaticalCase,
+      input.toJson(),
+      diagnostics: diagnostics,
+    );
+    return InflectionResult(
+      output: DeclensionOutput.fromJson(output),
+      diagnostics: diagnostics,
+    );
+  }
 
   /// Inflects a full-name string and returns it in its original layout.
   Future<String> inflectFullName(
@@ -326,7 +418,13 @@ final class Shevchenko {
   Future<Map<String, Object?>> inflectRaw(
     GrammaticalCase grammaticalCase,
     Object? input,
-  ) async {
+  ) => _inflectRaw(grammaticalCase, input);
+
+  Future<Map<String, Object?>> _inflectRaw(
+    GrammaticalCase grammaticalCase,
+    Object? input, {
+    Map<String, InflectionFieldDiagnostic>? diagnostics,
+  }) async {
     final extensions = List<ShevchenkoExtension>.of(_extensions);
     // Snapshot nested JSON data before any await permits caller mutation.
     final valid = freezeFields(
@@ -344,6 +442,9 @@ final class Shevchenko {
       if (value is! String) continue;
       final parts = value.split('-');
       final output = <String>[];
+      final wordDiagnostics = diagnostics != null
+          ? <WordInflectionResult>[]
+          : null;
       for (var i = 0; i < parts.length; i++) {
         final word = parts[i];
         WordClass? wordClass;
@@ -355,6 +456,13 @@ final class Shevchenko {
                   ).allMatches(word).length ==
                   1) {
             output.add(word);
+            wordDiagnostics?.add(
+              WordInflectionResult(
+                input: word,
+                value: word,
+                status: WordInflectionStatus.preserved,
+              ),
+            );
             continue;
           }
           if (RegExp(
@@ -364,48 +472,98 @@ final class Shevchenko {
             wordClass = _classifier.classify(word);
           }
         }
-        output.add(
-          await _words.inflect(
-            word,
-            DeclensionParams(
-              grammaticalCase: grammaticalCase,
-              gender: gender,
-              wordClass: wordClass,
-              applicationType: field,
-              customRuleFilter: field == ApplicationType.patronymicName
-                  ? (rule, _, _) => rule.applicationType.contains(
-                      ApplicationType.patronymicName,
-                    )
-                  : null,
-            ),
-          ),
+        final params = DeclensionParams(
+          grammaticalCase: grammaticalCase,
+          gender: gender,
+          wordClass: wordClass,
+          applicationType: field,
+          customRuleFilter: field == ApplicationType.patronymicName
+              ? (rule, _, _) => rule.applicationType.contains(
+                  ApplicationType.patronymicName,
+                )
+              : null,
+        );
+        if (wordDiagnostics == null) {
+          output.add(await _words.inflect(word, params));
+        } else {
+          final wordResult = await _words.inflectWithDiagnostics(word, params);
+          output.add(wordResult.value);
+          wordDiagnostics.add(wordResult);
+        }
+      }
+      final fieldOutput = output.join('-');
+      result[field.name] = fieldOutput;
+      if (wordDiagnostics != null) {
+        diagnostics![field.name] = InflectionFieldDiagnostic(
+          fieldName: field.name,
+          input: value,
+          output: fieldOutput,
+          source: InflectionFieldSource.coreRules,
+          words: wordDiagnostics,
         );
       }
-      result[field.name] = output.join('-');
     }
     for (final extension in extensions) {
-      final extra = await extension.afterInflect?.call(grammaticalCase, valid);
-      if (extra != null) result.addAll(extra);
+      final hookResult = extension.afterInflect?.call(grammaticalCase, valid);
+      final extra = hookResult is Future<Map<String, Object?>?>
+          ? await hookResult
+          : hookResult;
+      if (extra == null) continue;
+      final snapshot = freezeFields(extra);
+      result.addAll(snapshot);
+      if (diagnostics == null) continue;
+      for (final entry in snapshot.entries) {
+        diagnostics.remove(entry.key);
+        final inputValue = valid[entry.key];
+        final outputValue = entry.value;
+        if (inputValue is String && outputValue is String) {
+          diagnostics[entry.key] = InflectionFieldDiagnostic(
+            fieldName: entry.key,
+            input: inputValue,
+            output: outputValue,
+            source: InflectionFieldSource.extension,
+          );
+        }
+      }
     }
     return result;
   }
 
   Future<GrammaticalGender?> detectGender(GenderDetectionInput input) =>
       detectGenderRaw(input.toJson());
-  Future<GrammaticalGender?> detectGenderRaw(Object? input) async {
+
+  /// Detects gender and reports the selected field and match strengths.
+  Future<GenderDetectionResult> detectGenderWithDiagnostics(
+    GenderDetectionInput input,
+  ) => _detectGenderWithDiagnostics(input.toJson());
+
+  Future<GrammaticalGender?> detectGenderRaw(Object? input) async =>
+      (await _detectGenderWithDiagnostics(input)).gender;
+
+  Future<GenderDetectionResult> _detectGenderWithDiagnostics(
+    Object? input,
+  ) async {
     final valid = validateInput(input, genderRequired: false);
     final patronymic = valid['patronymicName'];
     final given = valid['givenName'];
     final String word;
     final Map<String, String> patterns;
+    final GenderDetectionSource source;
     if (patronymic is String && patronymic.isNotEmpty) {
       word = patronymic.toLowerCase();
       patterns = patronymicGenderPatterns;
+      source = GenderDetectionSource.patronymicName;
     } else if (given is String && given.isNotEmpty) {
       word = given.toLowerCase();
       patterns = givenGenderPatterns;
+      source = GenderDetectionSource.givenName;
     } else {
-      return null;
+      return const GenderDetectionResult(
+        gender: null,
+        source: GenderDetectionSource.none,
+        masculineMatchLength: 0,
+        feminineMatchLength: 0,
+      );
     }
     final masculine = RegExp(
       patterns['masculine']!,
@@ -415,13 +573,19 @@ final class Shevchenko {
       patterns['feminine']!,
       caseSensitive: false,
     ).firstMatch(word);
-    if (masculine == null) {
-      return feminine == null ? null : GrammaticalGender.feminine;
-    }
-    if (feminine == null) return GrammaticalGender.masculine;
-    return masculine[0]!.length > feminine[0]!.length
+    final masculineLength = masculine?[0]?.length ?? 0;
+    final feminineLength = feminine?[0]?.length ?? 0;
+    final gender = masculine == null
+        ? (feminine == null ? null : GrammaticalGender.feminine)
+        : feminine == null || masculineLength > feminineLength
         ? GrammaticalGender.masculine
         : GrammaticalGender.feminine;
+    return GenderDetectionResult(
+      gender: gender,
+      source: source,
+      masculineMatchLength: masculineLength,
+      feminineMatchLength: feminineLength,
+    );
   }
 
   Future<DeclensionOutput> inNominative(DeclensionInput input) =>

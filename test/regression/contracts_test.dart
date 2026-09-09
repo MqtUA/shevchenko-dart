@@ -459,4 +459,83 @@ void main() {
       }
     },
   );
+  test('inflection diagnostics explain core and extension results', () async {
+    final result = await inflectWithDiagnostics(
+      GrammaticalCase.genitive,
+      const DeclensionInput(
+        gender: GrammaticalGender.masculine,
+        givenName: 'Тарас',
+        patronymicName: 'невідоме',
+        militaryRank: 'солдат',
+      ),
+    );
+    expect(result.output.toJson(), {
+      'givenName': 'Тараса',
+      'patronymicName': 'невідоме',
+      'militaryRank': 'солдата',
+    });
+    final given = result.diagnostics['givenName']!;
+    expect(given.source, InflectionFieldSource.coreRules);
+    expect(given.changed, true);
+    expect(given.words.single.status, WordInflectionStatus.changed);
+    expect(given.words.single.ruleDescription, isNotEmpty);
+    expect(given.words.single.alternativeCount, greaterThanOrEqualTo(1));
+    expect(
+      result.diagnostics['patronymicName']!.words.single.status,
+      WordInflectionStatus.noMatchingRule,
+    );
+    final rank = result.diagnostics['militaryRank']!;
+    expect(rank.source, InflectionFieldSource.extension);
+    expect(rank.words, isEmpty);
+    expect(rank.changed, true);
+    expect(() => result.diagnostics['other'] = given, throwsUnsupportedError);
+    expect(() => given.words.add(given.words.single), throwsUnsupportedError);
+  });
+  test('later non-string extension output removes stale diagnostics', () async {
+    final engine = Shevchenko.core()
+      ..registerExtension(
+        (_) => ShevchenkoExtension(
+          fieldNames: ['custom'],
+          afterInflect: (_, input) => {'custom': input['custom']},
+        ),
+      )
+      ..registerExtension(
+        (_) => ShevchenkoExtension(
+          fieldNames: ['custom'],
+          afterInflect: (_, _) => {'custom': 1},
+        ),
+      );
+    final result = await engine.inflectWithDiagnostics(
+      GrammaticalCase.genitive,
+      DeclensionInput.withCustomFields(
+        gender: GrammaticalGender.masculine,
+        customFields: {'custom': 'value'},
+      ),
+    );
+    expect(result.output.customFields, {'custom': 1});
+    expect(result.diagnostics, isEmpty);
+  });
+  test(
+    'gender diagnostics retain compatibility precedence and evidence',
+    () async {
+      final result = await detectGenderWithDiagnostics(
+        const GenderDetectionInput(
+          givenName: 'Оксана',
+          patronymicName: 'Григорович',
+        ),
+      );
+      expect(result.gender, GrammaticalGender.masculine);
+      expect(result.source, GenderDetectionSource.patronymicName);
+      expect(result.masculineMatchLength, greaterThan(0));
+      expect(result.isAmbiguous, false);
+
+      final empty = await Shevchenko().detectGenderWithDiagnostics(
+        const GenderDetectionInput(familyName: 'Шевченко'),
+      );
+      expect(empty.gender, isNull);
+      expect(empty.source, GenderDetectionSource.none);
+      expect(empty.masculineMatchLength, 0);
+      expect(empty.feminineMatchLength, 0);
+    },
+  );
 }

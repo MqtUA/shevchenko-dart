@@ -2,6 +2,47 @@ import 'language.dart';
 
 enum InflectionCommandAction { append, replace }
 
+/// Explains how a single word was resolved by [WordInflector].
+enum WordInflectionStatus {
+  /// A rule matched and changed the word.
+  changed,
+
+  /// A rule matched but its selected form is identical to the input.
+  unchanged,
+
+  /// The engine intentionally preserved the word before rule selection.
+  preserved,
+
+  /// No rule passed the configured filters.
+  noMatchingRule,
+}
+
+/// The declined value and rule-selection details for one word.
+final class WordInflectionResult {
+  const WordInflectionResult({
+    required this.input,
+    required this.value,
+    required this.status,
+    this.ruleDescription,
+    this.alternativeCount = 0,
+  });
+
+  /// The word supplied to the inflector.
+  final String input;
+
+  /// The selected declined form.
+  final String value;
+
+  /// Whether and how a rule affected the word.
+  final WordInflectionStatus status;
+
+  /// The description of the selected rule, when one matched.
+  final String? ruleDescription;
+
+  /// The number of forms stored by the selected rule for this case.
+  final int alternativeCount;
+}
+
 /// A command addresses a capture group, with zero denoting the first group.
 final class InflectionCommand {
   const InflectionCommand({required this.action, required this.value});
@@ -136,28 +177,81 @@ final class WordInflector {
   late final List<DeclensionRule> _rules;
 
   Future<String> inflect(String word, DeclensionParams params) async {
+    final rule = _selectRule(word, params);
+    if (rule == null) return word;
+    final alternatives = rule.grammaticalCases[params.grammaticalCase]!;
+    return alternatives.isEmpty ? word : _apply(word, rule, alternatives.first);
+  }
+
+  /// Inflects [word] and reports which rule produced the selected form.
+  Future<WordInflectionResult> inflectWithDiagnostics(
+    String word,
+    DeclensionParams params,
+  ) async {
+    final rule = _selectRule(word, params);
+    if (rule == null) {
+      return WordInflectionResult(
+        input: word,
+        value: word,
+        status: WordInflectionStatus.noMatchingRule,
+      );
+    }
+    final alternatives = rule.grammaticalCases[params.grammaticalCase]!;
+    if (alternatives.isEmpty) {
+      return WordInflectionResult(
+        input: word,
+        value: word,
+        status: WordInflectionStatus.unchanged,
+        ruleDescription: rule.description,
+      );
+    }
+    final value = _apply(word, rule, alternatives.first);
+    return WordInflectionResult(
+      input: word,
+      value: value,
+      status: value == word
+          ? WordInflectionStatus.unchanged
+          : WordInflectionStatus.changed,
+      ruleDescription: rule.description,
+      alternativeCount: alternatives.length,
+    );
+  }
+
+  DeclensionRule? _selectRule(String word, DeclensionParams params) {
+    bool matches(DeclensionRule rule) =>
+        rule.gender.contains(params.gender) &&
+        (params.applicationType == null ||
+            rule.applicationType.isEmpty ||
+            rule.applicationType.contains(params.applicationType)) &&
+        rule._find.hasMatch(word) &&
+        (params.wordClass == null || rule.wordClass == params.wordClass);
+
+    final filter = params.customRuleFilter;
+    if (filter == null) {
+      for (final rule in _rules) {
+        if (matches(rule)) return rule;
+      }
+      return null;
+    }
     final candidates = List<DeclensionRule>.unmodifiable([
-      for (var i = 0; i < _rules.length; i++)
-        if (_rules[i].gender.contains(params.gender) &&
-            (params.applicationType == null ||
-                _rules[i].applicationType.isEmpty ||
-                _rules[i].applicationType.contains(params.applicationType)) &&
-            _rules[i]._find.hasMatch(word) &&
-            (params.wordClass == null ||
-                _rules[i].wordClass == params.wordClass))
-          _rules[i],
+      for (final rule in _rules)
+        if (matches(rule)) rule,
     ]);
     DeclensionRule? rule;
     // Every callback must run, even after the first rule has been selected.
     for (var i = 0; i < candidates.length; i++) {
-      if (params.customRuleFilter?.call(candidates[i], i, candidates) ?? true) {
+      if (filter(candidates[i], i, candidates)) {
         rule ??= candidates[i];
       }
     }
-    if (rule == null) return word;
-    final alternatives = rule.grammaticalCases[params.grammaticalCase]!;
-    if (alternatives.isEmpty) return word;
-    final commands = alternatives.first;
+    return rule;
+  }
+
+  String _apply(
+    String word,
+    DeclensionRule rule,
+    Map<int, InflectionCommand> commands,
+  ) {
     final result = word.replaceAllMapped(rule._modify, (match) {
       final replacement = StringBuffer();
       for (var i = 0; i < match.groupCount; i++) {

@@ -3,6 +3,7 @@ tool/
 test/
 benchmark/
 .github/
+doc/api/
 .npm-cache/
 .pub-cache/
 pubspec.lock
@@ -27,4 +28,9 @@ node_modules/
 example/web_app/web/main.dart.js
 example/flutter_app/android/local.properties
 example/flutter_app/.flutter-plugins-dependencies
+example/flutter_app/android/
+example/flutter_app/windows/
+example/flutter_app/web/favicon.png
+example/flutter_app/web/icons/
+example/flutter_app/web/manifest.json
 smoke-result.json

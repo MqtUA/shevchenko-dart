@@ -2,7 +2,8 @@
 
 У репозиторії підтримуються Dart-код, приклади, тести та потрібні їм дані.
 Node.js, npm і JS/TS-джерела для роботи з ним не потрібні.
-Інструкції інтеграції у застосунки наведені в [README](../README.md).
+Інструкції інтеграції у застосунки наведені в [README](../README.md) та
+[українській версії](../README.uk.md).
 
 ## Підготовка
 
@@ -56,11 +57,14 @@ Unicode conformance source і ліцензія лежать у `test/fixtures/un
 dart run tool/embed_fixtures.dart --check
 dart run tool/embed_unicode.dart --check
 dart run tool/embed_full.dart --check
+dart run tool/verify_artifacts.dart
 dart test -p chrome
 dart test -p chrome -c dart2wasm
 ```
 
-Щоб відтворити embedded-файли, повторіть відповідну команду без `--check`.
+`verify_artifacts.dart` послідовно запускає перевірку правил і всіх трьох
+embedded-файлів. Щоб відтворити embedded-файли, повторіть відповідну команду
+без `--check`.
 Для Chrome можна задати `CHROME_EXECUTABLE`, якщо браузер встановлено нестандартно.
 
 ### Що саме доводять тести
@@ -141,8 +145,12 @@ JavaScript bundle до/після gzip та AOT executable. Самі звіти 
 
 ## GitHub releases
 
-`.github/workflows/ci.yml` не запускає тести, аналіз, збірки або benchmarks.
-Після push у default branch workflow порівнює `version:` у поточному
+`.github/workflows/ci.yml` перевіряє мінімальний Dart 3.11.0 і stable: залежності,
+аналіз та VM-тести. На stable він також перевіряє форматування, generated-файли,
+повний корпус, JavaScript, WebAssembly і publish archive. Pull request виконує
+ті самі перевірки без release.
+
+Після успішних перевірок push у default branch порівнює `version:` у поточному
 `pubspec.yaml` із версією до push. Якщо версія не змінилася, workflow завершує
 роботу без release. Перший push гілки, для якого попереднього `pubspec.yaml`
 немає, вважає поточну версію новою.
@@ -157,7 +165,8 @@ JavaScript bundle до/після gzip та AOT executable. Самі звіти 
 `tmp/`. `build/`, `.dart_tool/` і кеші є ігнорованими каталогами інструментів.
 У `doc/` додавайте документацію користувача/розробника, а не логи виконання.
 `tool/check_repository.dart` відхиляє JS/TS та службові файли серед tracked
-і нових файлів, які можуть потрапити до коміту.
+і нових файлів, які можуть потрапити до коміту. Benchmarks та Flutter-приклад
+залишаються локальними release-перевірками.
 
 ## Пакування
 

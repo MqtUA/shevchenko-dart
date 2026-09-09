@@ -43,7 +43,7 @@ registration is not ignored. Unknown input keys are retained for hooks only.
 | String enums | Enum `.name` retains each wire value |
 | absent/undefined | Typed null omits; raw adapter also accepts `Undefined.value` |
 | `InputValidationError` / TypeError | `InputValidationException` with exact message and stable code |
-| global extension registry | Registry per instance plus one shared default |
+| global extension registry | Registry per instance; top-level calls use a fixed shared default |
 | mutable extension input | Read-only defensive copies of JSON maps/lists |
 | arbitrary hook results | Raw maps preserve values; typed output checks standard String fields and rejects gender |
 | no `fullName` input or batch API | `FullNameInput` with an explicit format; ordered `inflectFullNames` convenience API |
