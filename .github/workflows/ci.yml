@@ -121,39 +121,32 @@ jobs:
 
           echo "changed=true" >> "$GITHUB_OUTPUT"
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "version=$current_version" >> "$GITHUB_OUTPUT"
 
-      - name: Create release notes from commits
+      - name: Create release notes from changelog
         if: steps.version.outputs.changed == 'true'
         id: notes
         env:
-          GH_TOKEN: ${{ github.token }}
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
         shell: bash
         run: |
           set -euo pipefail
 
-          previous_tag=""
-          while IFS= read -r candidate; do
-            if git rev-parse --verify --quiet "refs/tags/${candidate}^{commit}" >/dev/null &&
-               git merge-base --is-ancestor "$candidate" "$GITHUB_SHA"; then
-              previous_tag="$candidate"
-              break
-            fi
-          done < <(gh release list --limit 100 --json tagName --jq '.[].tagName')
-
-          if [[ -n "$previous_tag" ]]; then
-            range="${previous_tag}..${GITHUB_SHA}"
-            heading="Changes since ${previous_tag}"
-          else
-            range="$GITHUB_SHA"
-            heading="Changes"
-          fi
 
           notes="$RUNNER_TEMP/release-notes.md"
-          {
-            printf '## %s\n\n' "$heading"
-            git log --reverse --format='- %s (`%h`)' "$range"
-            printf '\n'
-          } > "$notes"
+
+          awk -v release_heading="# ${RELEASE_VERSION}" '
+            $0 == release_heading { found = 1; next }
+            found && /^# / { exit }
+            found {
+              if (!started && $0 == "") next
+              started = 1
+              print
+            }
+            END {
+              if (!found || !started) exit 1
+            }
+          ' CHANGELOG.md > "$notes"
 
           echo "file=$notes" >> "$GITHUB_OUTPUT"
 

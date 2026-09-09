@@ -23,3 +23,6 @@
   JavaScript, WebAssembly, full-corpus, artifact, and package checks.
 - Added English and Ukrainian package documentation, native, web, and Flutter
   examples, reproducible benchmarks, and cross-runtime parity fixtures.
+
+# 0.9.0
+first beta release
