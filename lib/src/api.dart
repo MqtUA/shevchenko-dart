@@ -21,6 +21,25 @@ Map<String, Object?> _customCopy(Map<String, Object?> fields) {
   return freezeFields(fields);
 }
 
+final _vowels = RegExp('[аоуеиіяюєї]', caseSensitive: false);
+final _uncertainFeminineFamilyName = RegExp(r'[ая]$', caseSensitive: false);
+final _uncertainMasculineFamilyName = RegExp(
+  r'(ой|ий|ій|их)$',
+  caseSensitive: false,
+);
+
+typedef _GenderPatterns = ({RegExp masculine, RegExp feminine});
+
+_GenderPatterns _compileGenderPatterns(Map<String, String> patterns) => (
+  masculine: RegExp(patterns['masculine']!, caseSensitive: false),
+  feminine: RegExp(patterns['feminine']!, caseSensitive: false),
+);
+
+final _givenNameGenderPatterns = _compileGenderPatterns(givenGenderPatterns);
+final _patronymicGenderPatterns = _compileGenderPatterns(
+  patronymicGenderPatterns,
+);
+
 /// The supported, unambiguous component layouts of a full-name string.
 enum FullNameFormat {
   givenPatronymicFamily,
@@ -449,12 +468,8 @@ final class Shevchenko {
         final word = parts[i];
         WordClass? wordClass;
         if (field == ApplicationType.familyName) {
-          if (i != parts.length - 1 &&
-              RegExp(
-                    '[аоуеиіяюєї]',
-                    caseSensitive: false,
-                  ).allMatches(word).length ==
-                  1) {
+          // Monosyllabic leading parts of compound family names stay intact.
+          if (i != parts.length - 1 && _vowels.allMatches(word).length == 1) {
             output.add(word);
             wordDiagnostics?.add(
               WordInflectionResult(
@@ -465,10 +480,10 @@ final class Shevchenko {
             );
             continue;
           }
-          if (RegExp(
-            gender == GrammaticalGender.feminine ? r'[ая]$' : r'(ой|ий|ій|их)$',
-            caseSensitive: false,
-          ).hasMatch(word)) {
+          final uncertainClass = gender == GrammaticalGender.feminine
+              ? _uncertainFeminineFamilyName
+              : _uncertainMasculineFamilyName;
+          if (uncertainClass.hasMatch(word)) {
             wordClass = _classifier.classify(word);
           }
         }
@@ -547,15 +562,15 @@ final class Shevchenko {
     final patronymic = valid['patronymicName'];
     final given = valid['givenName'];
     final String word;
-    final Map<String, String> patterns;
+    final _GenderPatterns patterns;
     final GenderDetectionSource source;
     if (patronymic is String && patronymic.isNotEmpty) {
       word = patronymic.toLowerCase();
-      patterns = patronymicGenderPatterns;
+      patterns = _patronymicGenderPatterns;
       source = GenderDetectionSource.patronymicName;
     } else if (given is String && given.isNotEmpty) {
       word = given.toLowerCase();
-      patterns = givenGenderPatterns;
+      patterns = _givenNameGenderPatterns;
       source = GenderDetectionSource.givenName;
     } else {
       return const GenderDetectionResult(
@@ -565,14 +580,8 @@ final class Shevchenko {
         feminineMatchLength: 0,
       );
     }
-    final masculine = RegExp(
-      patterns['masculine']!,
-      caseSensitive: false,
-    ).firstMatch(word);
-    final feminine = RegExp(
-      patterns['feminine']!,
-      caseSensitive: false,
-    ).firstMatch(word);
+    final masculine = patterns.masculine.firstMatch(word);
+    final feminine = patterns.feminine.firstMatch(word);
     final masculineLength = masculine?[0]?.length ?? 0;
     final feminineLength = feminine?[0]?.length ?? 0;
     final gender = masculine == null
