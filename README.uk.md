@@ -2,7 +2,7 @@
 
 [English](https://github.com/MqtUA/shevchenko-dart/blob/main/README.md) | **Українська**
 
-Версія бібліотеки: **1.0.0**.
+Версія бібліотеки: **1.0.1**.
 
 Бібліотека відмінює українські імена, по батькові, прізвища, військові звання та посади у семи відмінках і визначає граматичний рід за ім'ям або по батькові.
 Це Dart порт [shevchenko.js](https://github.com/tooleks/shevchenko-js) та [shevchenko-ext-military](https://github.com/tooleks/shevchenko-ext-military).

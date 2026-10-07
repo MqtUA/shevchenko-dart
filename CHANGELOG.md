@@ -1,3 +1,10 @@
+# 1.0.1
+
+- Compiled military rank and appointment patterns once instead of on every word.
+- Compiled gender detection and family-name patterns once instead of on every call.
+- Simplified input validation and rule ordering internals without changing behavior.
+
+
 # 1.0.0
 
 - Added a stable typed API for all seven Ukrainian grammatical cases.
