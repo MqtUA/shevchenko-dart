@@ -10,7 +10,7 @@ import 'values.dart';
 String? _optionalString(Map<String, Object?> input, String key) =>
     input[key] == Undefined.value ? null : input[key] as String?;
 
-Map<String, Object?> _customCopy(Map<String, Object?> fields) {
+Map<String, Object?> _copyCustomFields(Map<String, Object?> fields) {
   if (fields.keys.any(
     (key) => standardFields.contains(key) || key == 'gender',
   )) {
@@ -149,11 +149,6 @@ final class FullNameInput {
 
 /// A typed request. Null means absent; an empty string is a supplied field.
 final class DeclensionInput {
-  @override
-  bool operator ==(Object other) =>
-      other is DeclensionInput && equalValues(toJson(), other.toJson());
-  @override
-  int get hashCode => hashValue(toJson());
   const DeclensionInput({
     required this.gender,
     this.givenName,
@@ -170,7 +165,7 @@ final class DeclensionInput {
     this.militaryRank,
     this.militaryAppointment,
     required Map<String, Object?> customFields,
-  }) : customFields = _customCopy(customFields);
+  }) : customFields = _copyCustomFields(customFields);
   factory DeclensionInput.fromJson(Map<String, Object?> json) {
     final valid = validateInput(
       json,
@@ -197,7 +192,10 @@ final class DeclensionInput {
       familyName,
       militaryRank,
       militaryAppointment;
+
+  /// Extension-owned fields passed to hooks alongside the standard fields.
   final Map<String, Object?> customFields;
+
   Map<String, Object?> toJson() => {
     'gender': gender.name,
     if (givenName != null) 'givenName': givenName,
@@ -207,14 +205,17 @@ final class DeclensionInput {
     if (militaryAppointment != null) 'militaryAppointment': militaryAppointment,
     ...customFields,
   };
-}
 
-final class GenderDetectionInput {
   @override
   bool operator ==(Object other) =>
-      other is GenderDetectionInput && equalValues(toJson(), other.toJson());
+      other is DeclensionInput && equalValues(toJson(), other.toJson());
+
   @override
   int get hashCode => hashValue(toJson());
+}
+
+/// Name fields used to detect grammatical gender.
+final class GenderDetectionInput {
   const GenderDetectionInput({
     this.givenName,
     this.patronymicName,
@@ -239,6 +240,13 @@ final class GenderDetectionInput {
     if (patronymicName != null) 'patronymicName': patronymicName,
     if (familyName != null) 'familyName': familyName,
   };
+
+  @override
+  bool operator ==(Object other) =>
+      other is GenderDetectionInput && equalValues(toJson(), other.toJson());
+
+  @override
+  int get hashCode => hashValue(toJson());
 }
 
 /// Declined fields, omitting absent fields and gender.
@@ -257,12 +265,7 @@ final class DeclensionOutput {
     this.militaryRank,
     this.militaryAppointment,
     required Map<String, Object?> customFields,
-  }) : customFields = _customCopy(customFields);
-  @override
-  bool operator ==(Object other) =>
-      other is DeclensionOutput && equalValues(toJson(), other.toJson());
-  @override
-  int get hashCode => hashValue(toJson());
+  }) : customFields = _copyCustomFields(customFields);
   factory DeclensionOutput.fromJson(Map<String, Object?> json) {
     for (final field in standardFields) {
       if (json.containsKey(field) && json[field] is! String) {
@@ -287,7 +290,10 @@ final class DeclensionOutput {
       familyName,
       militaryRank,
       militaryAppointment;
+
+  /// Extension-produced fields that are not standard output fields.
   final Map<String, Object?> customFields;
+
   Map<String, Object?> toJson() => {
     if (givenName != null) 'givenName': givenName,
     if (patronymicName != null) 'patronymicName': patronymicName,
@@ -296,6 +302,13 @@ final class DeclensionOutput {
     if (militaryAppointment != null) 'militaryAppointment': militaryAppointment,
     ...customFields,
   };
+
+  @override
+  bool operator ==(Object other) =>
+      other is DeclensionOutput && equalValues(toJson(), other.toJson());
+
+  @override
+  int get hashCode => hashValue(toJson());
 }
 
 /// Identifies which part of the engine produced a field value.
