@@ -166,15 +166,20 @@ final class DeclensionParams {
 
 /// Executes ordered rules without public-input normalization.
 final class WordInflector {
-  WordInflector(Iterable<DeclensionRule> rules) {
+  WordInflector(Iterable<DeclensionRule> rules)
+    : _rules = _sortByPriority(rules);
+
+  final List<DeclensionRule> _rules;
+
+  /// Stable descending sort; equal priorities keep their source order.
+  static List<DeclensionRule> _sortByPriority(Iterable<DeclensionRule> rules) {
     final indexed = rules.indexed.toList()
       ..sort((a, b) {
         final priority = b.$2.priority.compareTo(a.$2.priority);
         return priority != 0 ? priority : a.$1.compareTo(b.$1);
       });
-    _rules = List.unmodifiable(indexed.map((entry) => entry.$2));
+    return List.unmodifiable(indexed.map((entry) => entry.$2));
   }
-  late final List<DeclensionRule> _rules;
 
   Future<String> inflect(String word, DeclensionParams params) async {
     final rule = _selectRule(word, params);
