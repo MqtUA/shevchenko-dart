@@ -44,7 +44,7 @@ Map<String, Object?> validateInput(
       'invalidGender',
     );
   }
-  final fields = [...nameFields, if (genderRequired) ...extraFields];
+  final fields = [...nameFields, ...extraFields];
   if (requireFields &&
       !fields.any(
         (key) => map.containsKey(key) && map[key] != Undefined.value,
