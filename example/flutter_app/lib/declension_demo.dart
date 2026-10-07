@@ -10,6 +10,8 @@ const _caseLabels = <s.GrammaticalCase, String>{
   s.GrammaticalCase.vocative: 'Кличний',
 };
 
+final _engine = s.Shevchenko();
+
 Future<Map<String, String>> declineAllCases({
   required String rank,
   required String fullName,
@@ -25,10 +27,9 @@ Future<Map<String, String>> declineAllCases({
     throw const FormatException('Заповніть хоча б одне поле.');
   }
 
-  final engine = s.Shevchenko();
   final parsedName = normalizedFullName.isEmpty
       ? null
-      : await _parseFullName(engine, normalizedFullName, gender);
+      : await _parseFullName(normalizedFullName, gender);
   final input = s.DeclensionInput(
     gender: gender,
     givenName: parsedName?.givenName,
@@ -42,7 +43,7 @@ Future<Map<String, String>> declineAllCases({
 
   final output = <String, String>{};
   for (final grammaticalCase in s.GrammaticalCase.values) {
-    final result = await engine.inflect(grammaticalCase, input);
+    final result = await _engine.inflect(grammaticalCase, input);
     output[_caseLabels[grammaticalCase]!] = [
       result.militaryRank,
       if (parsedName != null) parsedName.formatOutput(result),
@@ -53,7 +54,6 @@ Future<Map<String, String>> declineAllCases({
 }
 
 Future<s.FullNameInput> _parseFullName(
-  s.Shevchenko engine,
   String text,
   s.GrammaticalGender gender,
 ) async {
@@ -69,10 +69,10 @@ Future<s.FullNameInput> _parseFullName(
     if (_looksLikePatronymic(parts[1])) {
       format = s.FullNameFormat.givenPatronymic;
     } else {
-      final firstGender = await engine.detectGender(
+      final firstGender = await _engine.detectGender(
         s.GenderDetectionInput(givenName: parts[0]),
       );
-      final secondGender = await engine.detectGender(
+      final secondGender = await _engine.detectGender(
         s.GenderDetectionInput(givenName: parts[1]),
       );
       final surnameFirst =
@@ -103,12 +103,15 @@ Future<s.FullNameInput> _parseFullName(
   return s.FullNameInput(fullName: text, gender: gender, format: format);
 }
 
-bool _looksLikePatronymic(String value) => RegExp(
+final _patronymicEnding = RegExp(
   r'(ович|евич|євич|йович|ич|івна|ївна|овна|евна|євна)$',
   caseSensitive: false,
-).hasMatch(value);
-
-bool _looksLikeFamilyName(String value) => RegExp(
+);
+final _familyNameEnding = RegExp(
   r'(енко|єнко|ко|ук|юк|чук|щук|чак|як|ський|цький|зький|ова|ева|єва|іна|їна)$',
   caseSensitive: false,
-).hasMatch(value);
+);
+
+bool _looksLikePatronymic(String value) => _patronymicEnding.hasMatch(value);
+
+bool _looksLikeFamilyName(String value) => _familyNameEnding.hasMatch(value);

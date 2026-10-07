@@ -84,7 +84,7 @@ class _DeclensionPageState extends State<DeclensionPage> {
         gender: _gender,
       );
     } on FormatException catch (error) {
-      message = error.message.toString();
+      message = error.message;
     } catch (_) {
       message = 'Не вдалося виконати відмінювання.';
     }
