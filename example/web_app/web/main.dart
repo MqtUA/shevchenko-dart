@@ -30,8 +30,9 @@ Future<void> main() async {
     } catch (error) {
       output = '$error';
     }
-    if (request == revision)
+    if (request == revision) {
       web.document.getElementById('output')!.textContent = output;
+    }
     return output;
   }
 
